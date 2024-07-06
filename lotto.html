@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>National Lottery Number Generator and Matcher</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://www.google.com/recaptcha/api.js?render=6LdhwgkqAAAAAB45m4Y8G0r3HGlKXNwP83dezbQE"></script>
+    <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <style>
+        .lottery-numbers-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            margin-top: 2rem;
+            overflow-x: hidden;
+            padding: 0 1rem;
+        }
+        
+        
+        #generated-numbers {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.8rem;
+            /*padding: 10px;*/
+            /*max-width: 100vw;*/
+            overflow-x: auto;
+            /*transform: scale(1);*/ /* Set the initial scale to 1 */
+        }
+        
+        #generated-numbers span {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 4rem;
+            height: 4rem;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #fff;
+            background-color: #d00;
+            border-radius: 50%;
+            box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.6); /* Added inset shadow */
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.9); /* Updated text shadow */
+            animation: pulse 2s infinite;
+        }
+
+        .lottery-numbers-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+        
+        #watermark {
+            display: flex;
+            justify-content: center;
+            margin-top: 1rem; /* Adjust the spacing between elements as needed */
+            font-size: 0.8rem;
+            color: rgb(163, 163, 163);
+        }
+        
+        /* Media query for narrow viewports */
+        @media (max-width: 480px) {
+            #generated-numbers {
+                /*transform: scale(0.8);*/ /* Scale down the #generated-numbers element on narrow viewports */
+            }
+
+            #generated-numbers span {
+                width: 2rem; /* Adjust width on narrow viewports */
+                height: 2rem; /* Adjust height on narrow viewports */
+                font-size: 0.8rem; /* Adjust font size on narrow viewports */
+            }
+
+            #watermark {
+                display: flex;
+                justify-content: center;
+                margin-top: 0.5rem; /* Adjust the spacing between elements as needed */
+                font-size: 0.5rem;
+                color: rgb(163, 163, 163);
+            }
+        }
+        
+        
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.01);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+           
+    </style>
+
+</head>
+<body>
+    <div class="container my-5">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h1 class="mb-0">Lottery Number Generator</h1>
+                    </div>
+                    <div class="card-body">
+                        <p>This page generates a set of random numbers for the UK National Lottery and (optionally) checks them against recent draws.
+                            The random number generator uses the Web Cryptography API to generate numbers in as non-deterministic a way as possible.
+                            The historical data is fetched from the National Lottery's <a href="https://www.national-lottery.co.uk/results/lotto/draw-history/csv" rel="noopener noreferrer nofollow">results download page.</a>
+                            The results download page only provides the last 180 days of data.</p>
+                        <div class="form-group">
+                            <label for="num-balls">Number of Balls:</label>
+                            <input type="number" class="form-control" id="num-balls" value="6" min="1" max="20">
+                        </div>
+                        <div class="form-group">
+                            <label for="max-number">Highest Number:</label>
+                            <input type="number" class="form-control" id="max-number" value="59" min="1" max="100">
+                        </div>
+                        <!-- Add a form group for a checkbox which makes fetching the matching results optional -->
+                        <div class="form-group">
+                            <label for="fetch-matches">Fetch recent matches?</label>
+                            <input type="checkbox" class="form-control" id="fetch-matches" value="false">
+                        </div>
+                        <button id="generate-btn" class="btn btn-primary">Generate</button>
+                        <div class="lottery-numbers-container" id="results">
+                            <p id="generated-numbers" class="mt-3"></p>
+                            <p id="share-btn" style="display: none;">
+                                <button id="share-img-btn">Share Image</button>
+                            </p>
+                            <div id="watermark" style="display: none;">
+                                <p>Created using www.kirkbowe.com/lotto.html</p>
+                            </div>
+
+                        </div>
+                        <div id="save-image" style="display: none;">
+                            <button id="save-img-btn">Save Image</button>
+                        </div>
+                        <div id="matches-container" style="display: none;">
+                        <h2 class="mt-4">Best Matches in last 180 days:</h2>
+                        <table id="matches-table" class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Draw Date</th>
+                                    <th>Ball 1</th>
+                                    <th>Ball 2</th>
+                                    <th>Ball 3</th>
+                                    <th>Ball 4</th>
+                                    <th>Ball 5</th>
+                                    <th>Ball 6</th>
+                                    <th>Bonus Ball</th>
+                                    <th>Match Count</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        </div>
+                    </div>
+                    <div class="card-footer text-muted">
+                        <p>Functionality &copy;2024 by Kirk Bowe.  All rights reserved.</p>
+                        <p id="email-address"></p>
+                        <p>Disclaimer: This page is for educational purposes only.  Not affiliated with the official Lottery.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        let generatorRun = false;
+        let isGenerating = false;
+
+        document.getElementById('generate-btn').addEventListener('click', generateAndMatch);
+
+        document.getElementById('save-img-btn').addEventListener('click', async () => {
+            //const generatedNumbers = generateRandomNumbers();
+            //displayNumbersOneByOne(generatedNumbers);
+            console.log('Generating image event...');
+        
+            // Wait for the numbers to be rendered
+            setTimeout(async () => {
+                const imageUrl = await generateImageFromNumbers();
+            }, 2000); // Adjust the delay as needed
+        });
+
+        var emailParts = ['shiny.joy9634', 'fastmail.com'];
+        var emailAddress = emailParts[0] + '@' + emailParts[1];
+        document.getElementById('email-address').textContent = 'Contact: ' + emailAddress;
+
+        const colors = ['#d00', '#0d0', '#00d', '#dd0', '#0dd', '#d0d', '#f90', '#09f', '#f0f', '#0ff', '#ff0', '#9f0', '#0f9', '#f09', '#90f', '#9ff', '#ff9', '#f9f', '#9f9', '#f99'];
+
+        function getRandomNumber(min, max) {
+            const range = max - min + 1;
+            const bytesNeeded = Math.ceil(Math.log2(range) / 8);
+            const randomBytes = new Uint8Array(bytesNeeded);
+            crypto.getRandomValues(randomBytes);
+        
+            let value = 0;
+            for (let i = 0; i < bytesNeeded; i++) {
+                value = (value << 8) + randomBytes[i];
+            }
+        
+            return min + (value % range);
+        }
+        
+
+        function generateRandomNumbers() {
+            const numNumbers = parseInt(document.getElementById('num-balls').value, 10);
+            const maxNumber = parseInt(document.getElementById('max-number').value, 10);
+            const numbers = new Set();
+            while (numbers.size < numNumbers) {
+                numbers.add(getRandomNumber(1, maxNumber));
+            }
+
+            return Array.from(numbers).sort((a, b) => a - b);
+        }
+
+        async function fetchHistoricalData(url) {
+            const response = await fetch(url);
+            const csvText = await response.text();
+
+            return csvText;
+        }
+
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',');
+            const rows = lines.slice(1).map(line => line.split(','));
+
+            // Only return the first 8 columns
+            rows.forEach(row => row.length = 8);
+
+            return { headers, rows };
+        }
+
+        function findBestMatches(generatedNumbers, historicalData) {
+            const { headers, rows } = historicalData;
+            const matches = rows.map(row => {
+                const balls = row.slice(1, 7).map(Number);
+                const matchCount = balls.filter(ball => generatedNumbers.includes(ball)).length;
+
+                return { row, matchCount };
+            });
+
+            matches.sort((a, b) => b.matchCount - a.matchCount);
+
+            return matches.slice(0, 10);
+        }
+
+        function displayNumbersOneByOne(numbers) {
+            const numbersContainer = document.getElementById('generated-numbers');
+            numbersContainer.innerHTML = ''; // Clear any existing content
+        
+            let index = 0;
+            const interval = setInterval(() => {
+                if (index < numbers.length) {
+                    const numberSpan = document.createElement('span');
+                    numberSpan.textContent = numbers[index];
+                    numberSpan.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]; // Set random background color
+                    numbersContainer.appendChild(numberSpan);
+                    index++;
+                } else {
+                    isGenerating = false;
+                    document.getElementById('generate-btn').disabled = false;
+                    document.getElementById('save-image').style.display = 'inherit';
+                    document.getElementById('watermark').style.display = 'inherit';
+                    clearInterval(interval); // Stop the interval when all numbers are displayed
+                }
+            }, 1000); // Adjust the delay (in milliseconds) between displaying each number
+        }
+
+        async function generateAndMatch() {
+            if (isGenerating) {
+                return; // Exit the function if the generation process is already running
+            }
+
+            document.getElementById('generate-btn').disabled = true;
+            isGenerating = true;
+
+            // Clear the generated numbers and matches table
+            document.getElementById('generated-numbers').innerHTML = '';
+            document.getElementById('matches-container').style.display = 'none';
+
+            const randomNumbers = generateRandomNumbers();
+            displayNumbersOneByOne(randomNumbers);
+
+            // Only fetch historical data if fetch-matches checkbox is checked
+            if (!document.getElementById('fetch-matches').checked) {
+                return;
+            }
+
+            const url = 'https://corsproxy.io/?https://www.national-lottery.co.uk/results/lotto/draw-history/csv';  // Adjust URL as necessary
+            const csvText = await fetchHistoricalData(url);
+
+            const historicalData = parseCSV(csvText);
+            const bestMatches = findBestMatches(randomNumbers, historicalData);
+
+            const tbody = document.getElementById('matches-table').querySelector('tbody');
+            tbody.innerHTML = '';
+
+            bestMatches.forEach(({ row, matchCount }) => {
+                const tr = document.createElement('tr');
+                row.forEach(cell => {
+                    const td = document.createElement('td');
+                    td.textContent = cell;
+                    tr.appendChild(td);
+                });
+                const tdMatchCount = document.createElement('td');
+                tdMatchCount.textContent = matchCount;
+                tr.appendChild(tdMatchCount);
+                tbody.appendChild(tr);
+            });
+
+            // Show the matches table
+            document.getElementById('matches-container').style.display = 'block';
+            generatorRun = true;
+        }
+
+        function generateImageFromNumbers() {
+            return new Promise((resolve, reject) => {
+                const numbersContainer = document.getElementById('results');
+        
+                // Ensure the container element exists
+                if (!numbersContainer) {
+                    console.error('Container element not found');
+                    reject('Container element not found');
+                    return;
+                }
+        
+                html2canvas(numbersContainer, {
+                    allowTaint: true, // Allow cross-origin images
+                    useCORS: true, // Use CORS for cross-origin images
+                    logging: false, // Disable logging
+                    scale: window.devicePixelRatio // Render at device pixel ratio
+                }).then(canvas => {
+                    // Ensure font is loaded before drawing text
+                    document.fonts.ready.then(() => {
+                        // Create an image element
+                        const img = document.createElement('img');
+                        img.src = canvas.toDataURL('image/png');
+        
+                        // Append the image to the body (optional)
+                        document.body.appendChild(img);
+        
+                        // Create a link element
+                        const link = document.createElement('a');
+                        link.href = img.src;
+                        const dateString = new Date().toISOString().slice(0, 10);
+                        link.download = 'lottery-numbers-' + dateString + '.png';
+        
+                        // Append the link to the body (not visible, for download purpose)
+                        document.body.appendChild(link);
+        
+                        // Trigger click on the link to download the image
+                        link.click();
+        
+                        // Remove the link after download
+                        document.body.removeChild(link);
+        
+                        // Resolve the promise
+                        resolve();
+                    }).catch(error => {
+                        console.error('Error ensuring fonts are loaded:', error);
+                        reject(error);
+                    });
+                }).catch(error => {
+                    console.error('Error generating image:', error);
+                    reject(error);
+                });
+            });
+        }
+        
+        
+        
+        
+
+        function generateTwitterShareLink() {
+            const baseUrl = 'https://twitter.com/intent/tweet';
+            const text = 'Check out my lottery numbers!';
+            const url = window.location.href;
+            const hashTags = 'lottery,numbers';
+            const params = new URLSearchParams({
+                text: `${text} ${url}`,
+                url,
+                hashtags: hashTags,
+                via: 'your_twitter_handle', // Optional: your Twitter handle
+            });
+        
+            return `${baseUrl}?${params.toString()}&media=clipboard:`;
+        }
+               
+
+        function renderReCaptcha() {
+            grecaptcha.ready(function() {
+              grecaptcha.execute('6LdhwgkqAAAAAB45m4Y8G0r3HGlKXNwP83dezbQE', { action: 'submit' }).then(function(token) {
+                // Validate the token on the client-side
+                validateReCaptcha(token);
+              });
+            });
+          }
+
+          function validateReCaptcha(token) {
+            // Send the token to the server to validate it
+            fetch('https://corsproxy.io/?https://www.google.com/recaptcha/api/siteverify', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              body: `secret=6LdhwgkqAAAAAB45m4Y8G0r3HGlKXNwP83dezbQE&response=${token}`
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                // Token is valid, proceed with the form submission
+                generateAndMatch();
+              } else {
+                alert('reCAPTCHA validation failed. Please try again.');
+              }
+            });
+          }
+    </script>
+</body>
+</html>
