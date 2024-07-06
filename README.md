@@ -2,6 +2,8 @@
 
 This project is a web application that generates random numbers for the UK National Lottery and (optionally) checks them against recent draws. The random number generator uses the Web Cryptography API to generate numbers in as non-deterministic a way as possible.
 
+See the example: https://www.kirkbowe.com/lotto.html
+
 ## Features
 
 - Generate a set of random numbers for the UK National Lottery
