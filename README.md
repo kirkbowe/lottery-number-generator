@@ -4,6 +4,8 @@ This project is a web application that generates random numbers for the UK Natio
 
 See the example: https://www.kirkbowe.com/lotto.html
 
+![](https://www.kirkbowe.com/lottery-number-generator.jpg)
+
 ## Features
 
 - Generate a set of random numbers for the UK National Lottery
