@@ -132,40 +132,36 @@
         <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
         <script>
-            // Define lottery configurations
-            const lotteries = {
-                "UK National Lottery": {
-                    numBalls: 6,
-                    maxNumber: 59,
-                    additionalBalls: null,
-                    historicalDataUrl: 'https://www.national-lottery.co.uk/results/lotto/draw-history/csv'
-                },
-                "Powerball (USA)": {
-                    numBalls: 5,
-                    maxNumber: 69,
-                    additionalBalls: { num: 1, maxNumber: 26 }, // Powerball
-                    historicalDataUrl: 'https://www.powerball.com/api/v1/numbers/powerball/recent?_format=csv'
-                },
-                "EuroMillions": {
-                    numBalls: 5,
-                    maxNumber: 50,
-                    additionalBalls: { num: 2, maxNumber: 12 }, // Lucky Stars
-                    historicalDataUrl: 'https://www.national-lottery.com/euromillions/results/csv'
-                },
-                "Set For Life (UK)": {
-                    numBalls: 5,
-                    maxNumber: 47,
-                    additionalBalls: { num: 1, maxNumber: 10 }, // Life Ball
-                    historicalDataUrl: 'https://www.national-lottery.co.uk/results/set-for-life/draw-history/csv'
-                },
-                "Custom": {
-                    numBalls: 6,
-                    maxNumber: 59,
-                    additionalBalls: null,
-                    historicalDataUrl: '' // Will not fetch historical data for custom lotteries
+            let lotteries = {};
+
+            // Load lottery configurations from JSON file
+            async function loadLotteryConfigurations() {
+                try {
+                    const response = await fetch('lotteries.json');
+                    if (!response.ok) {
+                        throw new Error('Failed to load lottery configurations');
+                    }
+                    lotteries = await response.json();
+                    populateLotterySelect();
+                } catch (error) {
+                    console.error('Error loading lottery configurations:', error);
                 }
-                // Add more lotteries as needed
-            };
+            }
+
+            // Populate lottery select dropdown
+            function populateLotterySelect() {
+                const lotterySelect = document.getElementById('lottery-select');
+                lotterySelect.innerHTML = ''; // Clear existing options
+
+                for (const lottery in lotteries) {
+                    const option = document.createElement('option');
+                    option.value = lottery;
+                    option.textContent = lottery;
+                    lotterySelect.appendChild(option);
+                }
+
+                updateFormFields(); // Update form fields based on the first lottery
+            }
 
             let generatorRun = false;
             let isGenerating = false;
@@ -271,21 +267,13 @@
                 const lines = csvText.trim().split('\n');
                 const headers = lines[0].split(',');
                 const rows = lines.slice(1).map(line => line.split(','));
+                
 
-                // Adjust parsing based on lottery
-                if (lottery === "Powerball (USA)") {
-                    // Example Powerball CSV: Date, Ball1, Ball2, Ball3, Ball4, Ball5, Powerball
-                    rows.forEach(row => row.length = 7);
-                } else if (lottery === "EuroMillions") {
-                    // Example EuroMillions CSV: Date, Ball1, Ball2, Ball3, Ball4, Ball5, Lucky1, Lucky2
-                    rows.forEach(row => row.length = 8);
-                } else if (lottery === "Set For Life (UK)") {
-                    // Example Set For Life CSV: Date, Ball1, Ball2, Ball3, Ball4, Ball5, Life Ball
-                    rows.forEach(row => row.length = 7);
-                } else {
-                    // Default for UK National Lottery: Date, Ball1, Ball2, Ball3, Ball4, Ball5, Ball6, Bonus
-                    rows.forEach(row => row.length = 8);
-                }
+                const config = lotteries[lottery];
+                const numBalls = config.numBalls;
+                const additionalBalls = config.additionalBalls ? config.additionalBalls.num : 0;
+
+                rows.forEach(row => row.length = 1 + numBalls + additionalBalls);
 
                 return { headers, rows };
             }
@@ -298,34 +286,18 @@
                     let additionalBalls = [];
                     let matchCount = 0;
 
-                    if (lottery === "Powerball (USA)") {
-                        balls = row.slice(1, 6).map(Number); // Ball1 to Ball5
-                        const powerball = Number(row[6]);
-                        matchCount = balls.filter(ball => generatedNumbers.includes(ball)).length;
-                        if (generatedNumbers.includes(`Powerball: ${powerball}`)) {
-                            matchCount += 1;
-                        }
-                    } else if (lottery === "EuroMillions") {
-                        balls = row.slice(1, 6).map(Number); // Ball1 to Ball5
-                        additionalBalls = row.slice(6, 8).map(Number); // Lucky1 and Lucky2
-                        matchCount = balls.filter(ball => generatedNumbers.includes(ball)).length;
-                        matchCount += additionalBalls.filter(ball => generatedNumbers.includes(ball)).length;
-                    } else if (lottery === "Set For Life (UK)") {
-                        balls = row.slice(1, 6).map(Number); // Ball1 to Ball5
-                        const lifeBall = Number(row[6]);
-                        matchCount = balls.filter(ball => generatedNumbers.includes(ball)).length;
-                        if (generatedNumbers.includes(`Life Ball: ${lifeBall}`)) {
-                            matchCount += 1;
-                        }
-                    } else {
-                        // Default for UK National Lottery
-                        balls = row.slice(1, 7).map(Number); // Ball1 to Ball6
-                        const bonus = Number(row[7]);
-                        matchCount = balls.filter(ball => generatedNumbers.includes(ball)).length;
-                        if (generatedNumbers.includes(`Bonus Ball: ${bonus}`)) {
-                            matchCount += 1;
-                        }
+                    const config = lotteries[lottery];
+                    const numBalls = config.numBalls;
+                    const additionalBallsConfig = config.additionalBalls;
+
+                    balls = row.slice(1, 1 + numBalls).map(Number);
+
+                    if (additionalBallsConfig) {
+                        additionalBalls = row.slice(1 + numBalls, 1 + numBalls + additionalBallsConfig.num).map(Number);
                     }
+
+                    matchCount = balls.filter(ball => generatedNumbers.includes(ball)).length;
+                    matchCount += additionalBalls.filter(ball => generatedNumbers.includes(ball)).length;
 
                     return { row, matchCount };
                 });
@@ -439,6 +411,7 @@
                 const numBallsInput = document.getElementById('num-balls');
                 const maxNumberInput = document.getElementById('max-number');
                 const enableAdditionalBallsCheckbox = document.getElementById('enable-additional-balls');
+                const fetchMatchesCheckbox = document.getElementById('fetch-matches');
 
                 if (lottery === "Custom") {
                     // Make inputs editable
@@ -452,6 +425,10 @@
                     const isChecked = enableAdditionalBallsCheckbox.checked;
                     document.getElementById('additional-balls-count-group').style.display = isChecked ? 'block' : 'none';
                     document.getElementById('additional-balls-max-group').style.display = isChecked ? 'block' : 'none';
+
+                    // Disable fetch matches checkbox for custom lottery
+                    fetchMatchesCheckbox.checked = false;
+                    fetchMatchesCheckbox.disabled = true;
                 } else {
                     // Make inputs read-only and set to predefined values
                     numBallsInput.readOnly = true;
@@ -474,6 +451,14 @@
                         document.getElementById('additional-balls-count').value = 1;
                         document.getElementById('additional-balls-max').value = 26;
                     }
+
+                    // Enable or disable fetch matches checkbox based on historicalDataUrl
+                    if (config.historicalDataUrl) {
+                        fetchMatchesCheckbox.disabled = false;
+                    } else {
+                        fetchMatchesCheckbox.checked = false;
+                        fetchMatchesCheckbox.disabled = true;
+                    }
                 }
 
                 // Adjust the table headers if needed
@@ -481,7 +466,9 @@
             }
 
             // Initialize form fields on page load
-            window.addEventListener('DOMContentLoaded', updateFormFields);
+            window.addEventListener('DOMContentLoaded', () => {
+                loadLotteryConfigurations();
+            });
 
             // Main function to generate numbers and fetch matches
             async function generateAndMatch() {
@@ -508,6 +495,13 @@
                 }
 
                 const config = lotteries[lottery];
+
+                // Skip if historical data URL is not available
+                if (!config.historicalDataUrl) {
+                    isGenerating = false;
+                    document.getElementById('generate-btn').disabled = false;
+                    return;
+                }
 
                 try {
                     const csvText = await fetchHistoricalData(config.historicalDataUrl);

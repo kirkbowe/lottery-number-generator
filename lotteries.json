@@ -1,0 +1,33 @@
+
+{
+    "UK National Lottery": {
+        "numBalls": 6,
+        "maxNumber": 59,
+        "additionalBalls": null,
+        "historicalDataUrl": "https://www.national-lottery.co.uk/results/lotto/draw-history/csv"
+    },
+    "Powerball (USA)": {
+        "numBalls": 5,
+        "maxNumber": 69,
+        "additionalBalls": { "num": 1, "maxNumber": 26 },
+        "historicalDataUrl": ""
+    },
+    "EuroMillions": {
+        "numBalls": 5,
+        "maxNumber": 50,
+        "additionalBalls": { "num": 2, "maxNumber": 12 },
+        "historicalDataUrl": "https://www.national-lottery.com/euromillions/results/csv"
+    },
+    "Set For Life (UK)": {
+        "numBalls": 5,
+        "maxNumber": 47,
+        "additionalBalls": { "num": 1, "maxNumber": 10 },
+        "historicalDataUrl": "https://www.national-lottery.co.uk/results/set-for-life/draw-history/csv"
+    },
+    "Custom": {
+        "numBalls": 6,
+        "maxNumber": 59,
+        "additionalBalls": null,
+        "historicalDataUrl": ""
+    }
+}
