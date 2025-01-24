@@ -1,5 +1,13 @@
 # Lottery Number Generator
 
+## Recent Updates
+
+### Improved Ball Drawing Mechanism
+The number generation process now more accurately simulates real lottery draws:
+- Creates an initial pool of all available numbers
+- Each drawn number is removed from the pool before the next draw
+- Additional balls (like Powerball, Lucky Stars) use their own separate pool
+
 This project is a web application that generates random numbers for various lotteries and (optionally) checks them against recent draws. Users can choose between the Web Cryptography API or Random.org's true random number service for generating numbers.
 
 See the example: https://www.kirkbowe.com/lotto.html

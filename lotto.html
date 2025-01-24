@@ -255,26 +255,42 @@
                     config = lotteries[lottery];
                 }
 
-                const numbers = new Set();
-                while (numbers.size < config.numBalls) {
-                    const num = await getRandomNumber(1, config.maxNumber);
-                    numbers.add(num);
+                // Create initial pool of numbers
+                let availableNumbers = Array.from({ length: config.maxNumber }, (_, i) => i + 1);
+                let drawnNumbers = [];
+
+                // Draw main numbers
+                for (let i = 0; i < config.numBalls; i++) {
+                    const randomIndex = await getRandomNumber(0, availableNumbers.length - 1);
+                    const drawnNumber = availableNumbers[randomIndex];
+                    drawnNumbers.push(drawnNumber);
+                    // Remove the drawn number from available pool
+                    availableNumbers.splice(randomIndex, 1);
                 }
-                let mainNumbers = Array.from(numbers).sort((a, b) => a - b);
+
+                // Sort main numbers
+                drawnNumbers.sort((a, b) => a - b);
 
                 // Handle additional balls if applicable
                 if (config.additionalBalls) {
-                    const additional = new Set();
-                    while (additional.size < config.additionalBalls.num) {
-                        const num = await getRandomNumber(1, config.additionalBalls.maxNumber);
-                        if (!mainNumbers.includes(num)) {
-                            additional.add(num);
-                        }
+                    // Reset available numbers pool for additional balls if they use a different range
+                    if (config.additionalBalls.maxNumber !== config.maxNumber) {
+                        availableNumbers = Array.from(
+                            { length: config.additionalBalls.maxNumber }, 
+                            (_, i) => i + 1
+                        );
                     }
-                    mainNumbers = mainNumbers.concat(Array.from(additional).sort((a, b) => a - b));
+                    
+                    for (let i = 0; i < config.additionalBalls.num; i++) {
+                        const randomIndex = await getRandomNumber(0, availableNumbers.length - 1);
+                        const drawnNumber = availableNumbers[randomIndex];
+                        drawnNumbers.push(drawnNumber);
+                        // Remove the drawn number from available pool
+                        availableNumbers.splice(randomIndex, 1);
+                    }
                 }
 
-                return mainNumbers;
+                return drawnNumbers;
             }
 
             // Fetch historical data
