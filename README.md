@@ -1,6 +1,6 @@
 # Lottery Number Generator
 
-This project is a web application that generates random numbers for various lotteries and (optionally) checks them against recent draws. The random number generator uses the Web Cryptography API to generate numbers in as non-deterministic a way as possible.
+This project is a web application that generates random numbers for various lotteries and (optionally) checks them against recent draws. Users can choose between the Web Cryptography API or Random.org's true random number service for generating numbers.
 
 See the example: https://www.kirkbowe.com/lotto.html
 
@@ -9,6 +9,7 @@ See the example: https://www.kirkbowe.com/lotto.html
 ## Features
 
 - Generate a set of random numbers for various lotteries
+- Choose between Web Cryptography API or Random.org as the source of randomness
 - Customize the number of balls and the highest number
 - Option to fetch and display recent matches from the last 180 days
 - Share the generated numbers as an image on social media
@@ -33,12 +34,13 @@ Alternatively, you can host the project on a web server and access it through a 
 
 1. Open the `lotto.html` file in a web browser.
 2. Select a lottery from the dropdown menu.
-3. Optionally, adjust the "Number of Balls" and "Highest Number" fields to customize the lottery number generation (only for Custom lottery).
-4. Check the "Fetch recent matches?" checkbox if you want to display recent matches from the last 180 days.
-5. Click the "Generate" button to generate the random lottery numbers.
-6. If the "Fetch recent matches?" option was selected, the best matches from the last 180 days will be displayed in a table.
-7. To share the generated numbers as an image, click the "Share Image" button.
-8. On narrow screens, the generated numbers will be scaled down to fit the viewport, and the circular backgrounds will maintain their proportions.
+3. Choose your preferred source of random numbers (Web Cryptography API or Random.org)
+4. Optionally, adjust the "Number of Balls" and "Highest Number" fields to customize the lottery number generation (only for Custom lottery).
+5. Check the "Fetch recent matches?" checkbox if you want to display recent matches from the last 180 days.
+6. Click the "Generate" button to generate the random lottery numbers.
+7. If the "Fetch recent matches?" option was selected, the best matches from the last 180 days will be displayed in a table.
+8. To share the generated numbers as an image, click the "Share Image" button.
+9. On narrow screens, the generated numbers will be scaled down to fit the viewport, and the circular backgrounds will maintain their proportions.
 
 ## Adding New Lotteries
 

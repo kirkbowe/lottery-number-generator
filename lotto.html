@@ -41,6 +41,17 @@
                         <p>This page generates a set of random numbers for various lotteries and (optionally) checks them against recent draws.
                             The random number generator uses the Web Cryptography API to generate numbers in as non-deterministic a way as possible.
                             Historical data is fetched from the respective lottery's results download page.</p>
+                        <div class="form-group">
+                            <label>Random Number Source:</label>
+                            <div class="form-check">
+                                <input type="radio" class="form-check-input" id="crypto-source" name="random-source" value="crypto" checked>
+                                <label class="form-check-label" for="crypto-source">Web Cryptography (Fast, Local)</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" class="form-check-input" id="random-org-source" name="random-source" value="random-org">
+                                <label class="form-check-label" for="random-org-source">Random.org (True Random, Remote)</label>
+                            </div>
+                        </div>
                         <!-- Lottery Selection -->
                         <div class="form-group">
                             <label for="lottery-select">Select Lottery:</label>
@@ -188,28 +199,41 @@
             // Colors for number display
             const colors = ['#d00', '#0d0', '#00d', '#dd0', '#0dd', '#d0d', '#f90', '#09f', '#f0f', '#0ff', '#ff0', '#9f0', '#0f9', '#f09', '#90f', '#9ff', '#ff9', '#f9f', '#9f9', '#f99'];
 
-            // Function to get a secure random number
-            function getRandomNumber(min, max) {
+            // Function to get a random number using Web Cryptography API
+            function getCryptoRandom(min, max) {
                 const range = max - min + 1;
-                const bytesNeeded = Math.ceil(Math.log2(range) / 8);
-                const randomBytes = new Uint8Array(bytesNeeded);
-                crypto.getRandomValues(randomBytes);
+                const bytes = new Uint32Array(1);
+                crypto.getRandomValues(bytes);
+                return Math.floor(bytes[0] / 0xffffffff * range) + min;
+            }
 
-                let value = 0;
-                for (let i = 0; i < bytesNeeded; i++) {
-                    value = (value << 8) + randomBytes[i];
+            // Updated function to get random number based on selected source
+            async function getRandomNumber(min, max) {
+                const source = document.querySelector('input[name="random-source"]:checked').value;
+                
+                if (source === 'random-org') {
+                    try {
+                        const response = await fetch(`https://www.random.org/integers/?num=1&min=${min}&max=${max}&col=1&base=10&format=plain&rnd=new`);
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch from Random.org');
+                        }
+                        const number = await response.text();
+                        return parseInt(number.trim(), 10);
+                    } catch (error) {
+                        console.error('Random.org fetch failed, falling back to Web Cryptography:', error);
+                        return getCryptoRandom(min, max);
+                    }
+                } else {
+                    return getCryptoRandom(min, max);
                 }
-
-                return min + (value % range);
             }
 
             // Function to generate random numbers based on selected lottery
-            function generateRandomNumbers() {
+            async function generateRandomNumbers() {
                 const lottery = document.getElementById('lottery-select').value;
                 let config;
 
                 if (lottery === "Custom") {
-                    // Get user-defined settings
                     const numBalls = parseInt(document.getElementById('num-balls').value, 10);
                     const maxNumber = parseInt(document.getElementById('max-number').value, 10);
                     const enableAdditional = document.getElementById('enable-additional-balls').checked;
@@ -233,7 +257,8 @@
 
                 const numbers = new Set();
                 while (numbers.size < config.numBalls) {
-                    numbers.add(getRandomNumber(1, config.maxNumber));
+                    const num = await getRandomNumber(1, config.maxNumber);
+                    numbers.add(num);
                 }
                 let mainNumbers = Array.from(numbers).sort((a, b) => a - b);
 
@@ -241,7 +266,7 @@
                 if (config.additionalBalls) {
                     const additional = new Set();
                     while (additional.size < config.additionalBalls.num) {
-                        const num = getRandomNumber(1, config.additionalBalls.maxNumber);
+                        const num = await getRandomNumber(1, config.additionalBalls.maxNumber);
                         if (!mainNumbers.includes(num)) {
                             additional.add(num);
                         }
@@ -484,7 +509,7 @@
                 document.getElementById('matches-container').style.display = 'none';
 
                 const lottery = document.getElementById('lottery-select').value;
-                const randomNumbers = generateRandomNumbers();
+                const randomNumbers = await generateRandomNumbers(); // Add await here
                 displayNumbersOneByOne(randomNumbers);
 
                 // Only fetch historical data if checkbox is checked and not Custom lottery
