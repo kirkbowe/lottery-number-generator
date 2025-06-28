@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(open /Users/kirkbowe/Projects/lottery-number-generator/randomness_test.html)",
+      "Bash(rm:*)",
+      "Bash(open lotto_match.html)",
+      "Bash(rg:*)",
+      "Bash(chmod:*)",
+      "Bash(python3:*)"
+    ],
+    "deny": []
+  }
+}

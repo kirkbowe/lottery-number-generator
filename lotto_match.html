@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottery Matching Game - How Hard Is It To Win?</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .number-ball {
+            display: inline-block;
+            margin: 3px;
+            padding: 8px;
+            border-radius: 50%;
+            color: white;
+            width: 40px;
+            height: 40px;
+            line-height: 24px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .main-ball { background: linear-gradient(45deg, #007bff, #0056b3); }
+        .additional-ball { background: linear-gradient(45deg, #dc3545, #c82333); border: 2px solid #000; }
+        .matched-ball { background: linear-gradient(45deg, #28a745, #1e7e34); animation: pulse 1s infinite; }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .statistics-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .stat-item {
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+        }
+        
+        .match-history {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        
+        .match-entry {
+            padding: 5px 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 3px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .controls-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .number-input {
+            width: 60px;
+            text-align: center;
+            margin: 2px;
+        }
+        
+        .odds-display {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .match-requirement {
+            background: #e9ecef;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .match-chart {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .frequency-bar {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        
+        .frequency-label {
+            min-width: 80px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .frequency-bar-fill {
+            height: 20px;
+            background: linear-gradient(90deg, #007bff, #0056b3);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            margin: 0 10px;
+            min-width: 2px;
+        }
+        
+        .frequency-count {
+            min-width: 60px;
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .frequency-percentage {
+            min-width: 50px;
+            text-align: right;
+            color: #6c757d;
+            font-size: 12px;
+        }
+        
+        .running-indicator {
+            display: none;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1);
+            background-size: 200% 100%;
+            animation: gradient 2s ease-in-out infinite;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .generation-display {
+            min-height: 80px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px dashed #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="text-center mb-4">🎲 Lottery Matching Game</h1>
+                <p class="text-center text-muted">Enter your lucky numbers and watch how many attempts it takes to match them!</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="controls-panel">
+                    <h4>Game Setup</h4>
+                    
+                    <div class="form-group">
+                        <label for="lotterySelect">Lottery Type:</label>
+                        <select id="lotterySelect" class="form-control">
+                            <option value="">Select a lottery...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rngMethod">Random Number Generator:</label>
+                        <select id="rngMethod" class="form-control">
+                            <option value="crypto">Cryptographic (Unbiased)</option>
+                            <option value="multi-entropy">Multi-Entropy Fusion</option>
+                            <option value="quantum">Quantum-Inspired</option>
+                            <option value="physical">Physical Ball Simulation</option>
+                        </select>
+                    </div>
+
+                    <div id="matchRequirements">
+                        <h6>Required Matches to Win:</h6>
+                        <div class="match-requirement">
+                            <label for="requiredMainMatches">Main Numbers:</label>
+                            <input type="number" id="requiredMainMatches" class="form-control" style="width: 80px;" value="3" min="0" max="10">
+                        </div>
+                        <div class="match-requirement" id="additionalMatchRequirement" style="display: none;">
+                            <label for="requiredAdditionalMatches">Additional Numbers:</label>
+                            <input type="number" id="requiredAdditionalMatches" class="form-control" style="width: 80px;" value="0" min="0" max="5">
+                        </div>
+                        <div class="match-requirement">
+                            <small class="text-muted">Example: "3+1" means 3 main + 1 additional number</small>
+                        </div>
+                    </div>
+
+                    <div id="numberInputSection" style="display: none;">
+                        <h5>Your Numbers</h5>
+                        <div id="mainNumbersInput">
+                            <label>Main Numbers:</label>
+                            <div id="mainNumberInputs"></div>
+                        </div>
+                        <div id="additionalNumbersInput" style="display: none;">
+                            <label>Additional Numbers:</label>
+                            <div id="additionalNumberInputs"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <button id="startButton" class="btn btn-primary btn-lg" disabled>Start Matching!</button>
+                        <button id="stopButton" class="btn btn-danger btn-lg" style="display: none;">Stop</button>
+                    </div>
+
+                    <div id="oddsDisplay" class="odds-display" style="display: none;">
+                        <strong>Odds of Exact Match:</strong>
+                        <div id="oddsValue">-</div>
+                    </div>
+                </div>
+
+                <div class="statistics-panel">
+                    <h4 class="text-center">Statistics</h4>
+                    <div class="row">
+                        <div class="col-4 stat-item">
+                            <span id="totalRuns" class="stat-value">0</span>
+                            <span class="stat-label">Total Runs</span>
+                        </div>
+                        <div class="col-4 stat-item">
+                            <span id="elapsedTime" class="stat-value">0s</span>
+                            <span class="stat-label">Time Elapsed</span>
+                        </div>
+                        <div class="col-4 stat-item">
+                            <span id="runsPerSecond" class="stat-value">0</span>
+                            <span class="stat-label">Runs/Second</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-4 stat-item">
+                            <span id="bestMainMatch" class="stat-value">0</span>
+                            <span class="stat-label">Best Main</span>
+                        </div>
+                        <div class="col-4 stat-item">
+                            <span id="bestAdditionalMatch" class="stat-value">0</span>
+                            <span class="stat-label">Best Additional</span>
+                        </div>
+                        <div class="col-4 stat-item">
+                            <span id="totalMatches" class="stat-value">0</span>
+                            <span class="stat-label">Total Matches</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="running-indicator" id="runningIndicator">
+                    🎰 Generating numbers... Run #<span id="currentRun">0</span>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Your Numbers</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="playerNumbersDisplay">Enter your numbers to begin</div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Latest Generation</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="latestGeneration" class="generation-display">
+                            Numbers will appear here...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Match Frequency Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="matchChart" class="match-chart">
+                            <div class="text-muted text-center">Match frequencies will appear here...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Recent Matches</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="matchHistory" class="match-history">
+                            Recent matches will be recorded here...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="js/lottery-config.js"></script>
+    <script src="js/rng-engines.js"></script>
+    <script src="js/match-game.js"></script>
+    
+    <script>
+        class LotteryMatchApp {
+            constructor() {
+                this.matchGame = new MatchGame();
+                this.isRunning = false;
+                this.matchCount = 0;
+                this.init();
+            }
+
+            async init() {
+                await this.matchGame.lotteryConfig.loadConfigurations();
+                this.populateLotterySelect();
+                this.bindEvents();
+                this.updateMatchRequirements(); // Initialize match requirements from default HTML values
+            }
+
+            populateLotterySelect() {
+                const select = document.getElementById('lotterySelect');
+                const lotteries = this.matchGame.lotteryConfig.getLotteryNames();
+                
+                lotteries.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    select.appendChild(option);
+                });
+            }
+
+            bindEvents() {
+                document.getElementById('lotterySelect').addEventListener('change', (e) => {
+                    this.onLotteryChange(e.target.value);
+                });
+
+                document.getElementById('startButton').addEventListener('click', () => {
+                    this.startMatching();
+                });
+
+                document.getElementById('stopButton').addEventListener('click', () => {
+                    this.stopMatching();
+                });
+
+                document.getElementById('rngMethod').addEventListener('change', (e) => {
+                    this.matchGame.setRNGMethod(e.target.value);
+                });
+
+                document.getElementById('requiredMainMatches').addEventListener('change', () => {
+                    this.updateMatchRequirements();
+                });
+                
+                document.getElementById('requiredAdditionalMatches').addEventListener('change', () => {
+                    this.updateMatchRequirements();
+                });
+            }
+
+            onLotteryChange(lotteryName) {
+                if (!lotteryName) return;
+
+                const config = this.matchGame.lotteryConfig.setCurrentLottery(lotteryName);
+                this.createNumberInputs(config);
+                this.updateMatchRequirementsUI(config);
+                this.updateOddsDisplay();
+                this.checkStartButtonState();
+            }
+            
+            updateMatchRequirementsUI(config) {
+                const additionalRequirement = document.getElementById('additionalMatchRequirement');
+                const additionalInput = document.getElementById('requiredAdditionalMatches');
+                
+                if (config.additionalBalls) {
+                    additionalRequirement.style.display = 'flex';
+                    additionalInput.max = config.additionalBalls.num;
+                } else {
+                    additionalRequirement.style.display = 'none';
+                    additionalInput.value = 0;
+                }
+                
+                document.getElementById('requiredMainMatches').max = config.numBalls;
+                this.updateMatchRequirements();
+            }
+            
+            updateMatchRequirements() {
+                const mainInput = document.getElementById('requiredMainMatches');
+                const additionalInput = document.getElementById('requiredAdditionalMatches');
+                const mainMatches = parseInt(mainInput.value) || 0;
+                const additionalMatches = parseInt(additionalInput.value) || 0;
+                
+                
+                this.matchGame.setRequiredMatches(mainMatches, additionalMatches);
+                this.updateOddsDisplay();
+            }
+
+            createNumberInputs(config) {
+                const mainInputs = document.getElementById('mainNumberInputs');
+                const additionalInputs = document.getElementById('additionalNumberInputs');
+                const additionalSection = document.getElementById('additionalNumbersInput');
+
+                mainInputs.innerHTML = '';
+                additionalInputs.innerHTML = '';
+
+                for (let i = 0; i < config.numBalls; i++) {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.className = 'form-control number-input';
+                    input.min = 1;
+                    input.max = config.maxNumber;
+                    input.placeholder = `#${i + 1}`;
+                    input.addEventListener('change', () => this.updatePlayerNumbers());
+                    mainInputs.appendChild(input);
+                }
+
+                if (config.additionalBalls) {
+                    additionalSection.style.display = 'block';
+                    for (let i = 0; i < config.additionalBalls.num; i++) {
+                        const input = document.createElement('input');
+                        input.type = 'number';
+                        input.className = 'form-control number-input';
+                        input.min = 1;
+                        input.max = config.additionalBalls.maxNumber;
+                        input.placeholder = `+${i + 1}`;
+                        input.addEventListener('change', () => this.updatePlayerNumbers());
+                        additionalInputs.appendChild(input);
+                    }
+                } else {
+                    additionalSection.style.display = 'none';
+                }
+
+                document.getElementById('numberInputSection').style.display = 'block';
+            }
+
+            updatePlayerNumbers() {
+                const mainInputs = document.querySelectorAll('#mainNumberInputs input');
+                const additionalInputs = document.querySelectorAll('#additionalNumberInputs input');
+
+                const mainNumbers = Array.from(mainInputs)
+                    .map(input => parseInt(input.value))
+                    .filter(num => !isNaN(num));
+
+                const additionalNumbers = Array.from(additionalInputs)
+                    .map(input => parseInt(input.value))
+                    .filter(num => !isNaN(num));
+
+                this.matchGame.setPlayerNumbers(mainNumbers, additionalNumbers);
+                this.displayPlayerNumbers(mainNumbers, additionalNumbers);
+                this.checkStartButtonState();
+            }
+
+            displayPlayerNumbers(mainNumbers, additionalNumbers) {
+                const display = document.getElementById('playerNumbersDisplay');
+                let html = '';
+
+                if (mainNumbers.length > 0) {
+                    html += mainNumbers.map(num => 
+                        `<span class="number-ball main-ball">${num}</span>`
+                    ).join('');
+                }
+
+                if (additionalNumbers.length > 0) {
+                    html += ' ';
+                    html += additionalNumbers.map(num => 
+                        `<span class="number-ball additional-ball">${num}</span>`
+                    ).join('');
+                }
+
+                display.innerHTML = html || 'Enter your numbers to begin';
+            }
+
+            checkStartButtonState() {
+                const config = this.matchGame.lotteryConfig.getCurrentConfig();
+                const requiredMain = config ? config.numBalls : 0;
+                const requiredAdditional = config && config.additionalBalls ? config.additionalBalls.num : 0;
+                const hasMainNumbers = this.matchGame.playerNumbers.main.length === requiredMain;
+                const hasAdditionalNumbers = this.matchGame.playerNumbers.additional.length === requiredAdditional;
+
+                document.getElementById('startButton').disabled = !(hasMainNumbers && hasAdditionalNumbers);
+            }
+
+            updateOddsDisplay() {
+                const odds = this.matchGame.getEstimatedOdds();
+                const display = document.getElementById('oddsDisplay');
+                const value = document.getElementById('oddsValue');
+
+                if (odds) {
+                    value.textContent = odds.formatted;
+                    display.style.display = 'block';
+                } else {
+                    display.style.display = 'none';
+                }
+            }
+
+            startMatching() {
+                this.isRunning = true;
+                this.matchCount = 0;
+                document.getElementById('startButton').style.display = 'none';
+                document.getElementById('stopButton').style.display = 'inline-block';
+                document.getElementById('runningIndicator').style.display = 'block';
+                document.getElementById('matchHistory').innerHTML = 'Searching for matches...';
+
+                this.matchGame.startMatching(
+                    (stats, matchResult, generated) => this.onProgress(stats, matchResult, generated),
+                    (matchResult, generated, runNumber) => this.onMatch(matchResult, generated, runNumber),
+                    (matchResult, generated, stats) => this.onComplete(matchResult, generated, stats)
+                );
+            }
+
+            stopMatching() {
+                this.matchGame.stop();
+                this.isRunning = false;
+                document.getElementById('startButton').style.display = 'inline-block';
+                document.getElementById('stopButton').style.display = 'none';
+                document.getElementById('runningIndicator').style.display = 'none';
+            }
+
+            onProgress(stats, matchResult, generated) {
+                document.getElementById('totalRuns').textContent = stats.totalRuns.toLocaleString();
+                document.getElementById('elapsedTime').textContent = stats.formattedTime;
+                document.getElementById('runsPerSecond').textContent = stats.runsPerSecond;
+                document.getElementById('bestMainMatch').textContent = stats.bestMainMatches;
+                document.getElementById('bestAdditionalMatch').textContent = stats.bestAdditionalMatches;
+                document.getElementById('totalMatches').textContent = stats.allMatches.length;
+                document.getElementById('currentRun').textContent = stats.totalRuns.toLocaleString();
+
+                this.displayLatestGeneration(generated, matchResult);
+                this.updateMatchChart(stats.sortedMatchFrequencies);
+            }
+
+            onMatch(matchResult, generated, runNumber) {
+                this.matchCount++;
+                const historyDiv = document.getElementById('matchHistory');
+                
+                const entry = document.createElement('div');
+                entry.className = 'match-entry';
+                entry.innerHTML = `
+                    <strong>Match #${this.matchCount} (Run ${runNumber.toLocaleString()})</strong><br>
+                    ${matchResult.main}+${matchResult.additional} matches 
+                    (${matchResult.total} total): 
+                    ${matchResult.matchedNumbers.main.concat(matchResult.matchedNumbers.additional).join(', ')}
+                `;
+                
+                historyDiv.insertBefore(entry, historyDiv.firstChild);
+                
+                // Keep only last 10 entries
+                while (historyDiv.children.length > 10) {
+                    historyDiv.removeChild(historyDiv.lastChild);
+                }
+            }
+
+            onComplete(matchResult, generated, stats) {
+                this.stopMatching();
+                
+                // Update the display FIRST before showing alert
+                this.displayLatestGeneration(generated, matchResult);
+                this.updateMatchChart(stats.sortedMatchFrequencies);
+                
+                const requirements = this.matchGame.requiredMatches;
+                const reqMain = requirements?.main ?? 'undefined';
+                const reqAdditional = requirements?.additional ?? 'undefined';
+                
+                alert(`🎉 Success! Found ${matchResult.main}+${matchResult.additional} matches in ${stats.totalRuns.toLocaleString()} runs!\n` +
+                      `Required: ${reqMain}+${reqAdditional}\n` +
+                      `Time: ${stats.formattedTime}\n` +
+                      `Matched numbers: ${matchResult.matchedNumbers.main.concat(matchResult.matchedNumbers.additional).join(', ')}`);
+            }
+
+            displayLatestGeneration(generated, matchResult) {
+                const display = document.getElementById('latestGeneration');
+                let html = '';
+
+                // Use matchResult to determine which numbers actually matched in correct pools
+                const matchedMainNumbers = matchResult.matchedNumbers.main;
+                const matchedAdditionalNumbers = matchResult.matchedNumbers.additional;
+
+                generated.main.forEach(num => {
+                    const isMatched = matchedMainNumbers.includes(num);
+                    const ballClass = isMatched ? 'matched-ball' : 'main-ball';
+                    html += `<span class="number-ball ${ballClass}">${num}</span>`;
+                });
+
+                if (generated.additional && generated.additional.length > 0) {
+                    html += ' ';
+                    generated.additional.forEach(num => {
+                        const isMatched = matchedAdditionalNumbers.includes(num);
+                        const ballClass = isMatched ? 'matched-ball' : 'additional-ball';
+                        html += `<span class="number-ball ${ballClass}">${num}</span>`;
+                    });
+                }
+
+                display.innerHTML = html;
+            }
+            
+            updateMatchChart(frequencies) {
+                const chartDiv = document.getElementById('matchChart');
+                
+                if (!frequencies) {
+                    chartDiv.innerHTML = '<div class="text-muted text-center">Match frequency data not available...</div>';
+                    return;
+                }
+                
+                if (frequencies.length === 0) {
+                    chartDiv.innerHTML = '<div class="text-muted text-center">Building frequency data as matches are found...</div>';
+                    return;
+                }
+                
+                const maxCount = Math.max(...frequencies.map(f => f.count));
+                
+                let html = '';
+                frequencies.forEach(freq => {
+                    const widthPercent = maxCount > 0 ? (freq.count / maxCount) * 100 : 0;
+                    const barColor = freq.total === 0 ? '#6c757d' : 
+                                   freq.total <= 2 ? '#28a745' :
+                                   freq.total <= 4 ? '#ffc107' : '#dc3545';
+                    
+                    html += `
+                        <div class="frequency-bar">
+                            <div class="frequency-label">${freq.main}+${freq.additional}</div>
+                            <div class="frequency-bar-fill" style="width: ${widthPercent}%; background: ${barColor};"></div>
+                            <div class="frequency-count">${freq.count}</div>
+                            <div class="frequency-percentage">${freq.percentage}%</div>
+                        </div>
+                    `;
+                });
+                
+                chartDiv.innerHTML = html;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new LotteryMatchApp();
+        });
+    </script>
+</body>
+</html>
