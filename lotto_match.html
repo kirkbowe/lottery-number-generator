@@ -208,6 +208,7 @@
                             <option value="multi-entropy">Multi-Entropy Fusion</option>
                             <option value="quantum">Quantum-Inspired</option>
                             <option value="physical">Physical Ball Simulation</option>
+                            <option value="random-org">Random.org (Atmospheric Noise, Remote)</option>
                         </select>
                     </div>
 
@@ -285,6 +286,9 @@
             <div class="col-md-6">
                 <div class="running-indicator" id="runningIndicator">
                     🎰 Generating numbers... Run #<span id="currentRun">0</span>
+                    <div id="randomOrgIndicator" style="display: none;">
+                        🌍 Using Random.org (slower due to network delays)
+                    </div>
                 </div>
 
                 <div class="card">
@@ -381,6 +385,7 @@
 
                 document.getElementById('rngMethod').addEventListener('change', (e) => {
                     this.matchGame.setRNGMethod(e.target.value);
+                    this.updateRandomOrgIndicator(e.target.value);
                 });
 
                 document.getElementById('requiredMainMatches').addEventListener('change', () => {
@@ -524,6 +529,15 @@
                     display.style.display = 'block';
                 } else {
                     display.style.display = 'none';
+                }
+            }
+
+            updateRandomOrgIndicator(method) {
+                const indicator = document.getElementById('randomOrgIndicator');
+                if (method === 'random-org') {
+                    indicator.style.display = 'block';
+                } else {
+                    indicator.style.display = 'none';
                 }
             }
 

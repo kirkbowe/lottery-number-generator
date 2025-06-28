@@ -261,6 +261,10 @@ class RNGRouter {
                 case 'quantum':
                     number = this.quantum.generateQuantumNumber(1, availableNumbers.length);
                     break;
+                case 'random-org':
+                    number = await getRandomOrgNumber(1, availableNumbers.length);
+                    await delay(1000); // 1 second delay between random.org calls
+                    break;
                 default:
                     number = getUnbiasedCryptoRandom(1, availableNumbers.length);
             }
@@ -295,6 +299,10 @@ class RNGRouter {
                 case 'quantum':
                     number = this.quantum.generateQuantumNumber(1, availableNumbers.length);
                     break;
+                case 'random-org':
+                    number = await getRandomOrgNumber(1, availableNumbers.length);
+                    await delay(1000); // 1 second delay between random.org calls
+                    break;
                 default:
                     number = getUnbiasedCryptoRandom(1, availableNumbers.length);
             }
@@ -308,5 +316,28 @@ class RNGRouter {
     }
 }
 
+async function getRandomOrgNumber(min, max) {
+    try {
+        const response = await fetch(`https://www.random.org/integers/?num=1&min=${min}&max=${max}&col=1&base=10&format=plain&rnd=new`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch from Random.org');
+        }
+        
+        const number = await response.text();
+        return parseInt(number.trim(), 10);
+    } catch (error) {
+        console.error('Random.org fetch failed, falling back to Multi-Entropy RNG:', error);
+        const multiEntropy = new MultiEntropyRNG();
+        return multiEntropy.generateNumber(min, max);
+    }
+}
+
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 window.RNGRouter = RNGRouter;
 window.getUnbiasedCryptoRandom = getUnbiasedCryptoRandom;
+window.getRandomOrgNumber = getRandomOrgNumber;
+window.delay = delay;
